@@ -1,7 +1,6 @@
-import * as fs from "fs"
 import Server from "./socketServer"
 import {info, error} from "./logger"
-import {merge, template} from "lodash"
+import {template} from "lodash"
 import AbstractPlugin from "./abstractPlugin"
 import {ConcatSource} from "webpack-sources"
 import {requirePath} from "./tools"
@@ -109,12 +108,26 @@ export default class ReloadPlugin extends AbstractPlugin {
     return done()
   }
   apply(compiler) { 
-    compiler.plugin("watch-run", (comp, done) => this.watcher(comp, done))
-    compiler.plugin("compile", (comp) => this.compile(comp))
-    compiler.plugin('compilation',
-    (comp) => comp.plugin('after-optimize-chunk-assets',
-      (chunks) => this.injector(comp, chunks)))
-    compiler.plugin('after-emit', (comp, done) => this.triggered(comp, done))
-    compiler.plugin('emit', (comp, done) => this.generate(comp, done))
+    if (compiler.hooks) {
+      const plugin = { name: 'Wcer' };
+      compiler.hooks['watch-run'].tap(plugin, (comp, done) => this.watcher(comp, done));
+      compiler.hooks.compile.tap(plugin, (comp) => this.compile(comp));
+      compiler.hooks.compilation.tap(plugin, (comp) => {
+        console.log(111,comp);
+        console.log(111,comp.hooks);
+        return comp.hooks['after-optimize-chunk-assets'].tap(plugin,
+          (chunks) => this.injector(comp, chunks))
+      });
+      compiler.hooks['after-emit'].tap(plugin, (comp, done) => this.triggered(comp, done));
+      compiler.hooks.emit.tap(plugin, (comp, done) => this.generate(comp, done));
+    } else {
+      compiler.plugin("watch-run", (comp, done) => this.watcher(comp, done))
+      compiler.plugin("compile", (comp) => this.compile(comp))
+      compiler.plugin('compilation',
+      (comp) => comp.plugin('after-optimize-chunk-assets',
+        (chunks) => this.injector(comp, chunks)))
+      compiler.plugin('after-emit', (comp, done) => this.triggered(comp, done))
+      compiler.plugin('emit', (comp, done) => this.generate(comp, done))
+    }
   }
 }

@@ -2,6 +2,7 @@ const path = require("path")
 const pack = require("./package.json")
 
 module.exports = (env = { analyze: false }) => ({
+  mode: 'production',
   target: "node",
   entry: './src/index.ts',
   devtool: "source-map",
@@ -11,7 +12,7 @@ module.exports = (env = { analyze: false }) => ({
     filename: "index.js",
     libraryTarget: "umd"
   },
-  externals: [Object.keys(pack.dependencies) || {}],
+  externals: Object.keys(pack.dependencies).reduce((t,c)=>{t[c] = c;return t;},{}),
   resolve: {
     modules: [path.resolve(__dirname, "src"), "node_modules"],
     mainFiles: ["index"],
